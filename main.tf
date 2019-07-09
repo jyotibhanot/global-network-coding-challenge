@@ -30,25 +30,15 @@ resource "aws_security_group" "terraform" {
 resource "aws_launch_configuration" "terraform" {
   image_id        = var.ami
   instance_type   = var.instance_type
-  key_name        = "inpursuit2019"
-  provisioner "file" {
-    source      = "app.py"
-    destination = "/tmp/app.py"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "chmod +x /tmp/app.py",
-      "yum install python-pip -y",
-      "pip install Flask requests -y",
-      "nohup python /tmp/app.py &"
-    ]
-  } 
+  key_name        = "inpursuit2019" 
   security_groups = [aws_security_group.terraform.id]
-
+  user_data       = "${data.template_file.userdata.rendered}"
   lifecycle {
     create_before_destroy = true
   }
+}
+data "template_file" "userdata" {
+    template = "${file("${path.module}/userdata.sh")}"
 }
 
 resource "aws_autoscaling_group" "terraform-ASG" {
@@ -58,9 +48,9 @@ resource "aws_autoscaling_group" "terraform-ASG" {
   load_balancers = [aws_elb.terraform-elb.name]
   health_check_type = "ELB"
 
-  max_size         = 1
-  min_size         = 1
-  desired_capacity = 1
+  max_size         = 3
+  min_size         = 3
+  desired_capacity = 3
 
   tag {
     key = "Name"
